@@ -239,9 +239,15 @@ select.field-input { cursor: pointer; appearance: none; background-image: url('d
       <p>Broadcast Overlay System</p>
     </div>
   </div>
-  <button class="btn btn-primary clip-btn" onclick="addSeason()">
-    <i class="ti ti-plus"></i> Dodaj Sezon
-  </button>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div id="saveStatus" style="display:flex; align-items:center; gap:8px; font-family:'Titillium Web',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); transition: all 0.4s;">
+      <i class="ti ti-cloud" id="saveIcon" style="font-size:18px;"></i>
+      <span id="saveText">Ładowanie...</span>
+    </div>
+    <button class="btn btn-primary clip-btn" onclick="addSeason()">
+      <i class="ti ti-plus"></i> Dodaj Sezon
+    </button>
+  </div>
 </div>
 
 <div class="container">
@@ -308,6 +314,88 @@ select.field-input { cursor: pointer; appearance: none; background-image: url('d
 <div id="rt"></div>
 
 <script>
+const SAVE_KEY = 'championship_manager_data';
+let saveTimeout = null;
+
+function saveToStorage() {
+  const data = {
+    teamsDB,
+    seasons,
+    nid,
+    docTitle: document.getElementById('docTitle')?.value || 'OFICJALNE WYNIKI MISTRZOSTW',
+    docSub: document.getElementById('docSub')?.value || 'SEZON JESIENNY 2026'
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    showSaveStatus('saved');
+  } catch(e) {
+    showSaveStatus('error');
+  }
+}
+
+function triggerAutoSave() {
+  showSaveStatus('saving');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveToStorage, 800);
+}
+
+function showSaveStatus(state) {
+  const icon = document.getElementById('saveIcon');
+  const text = document.getElementById('saveText');
+  const wrap = document.getElementById('saveStatus');
+  if(!icon || !text || !wrap) return;
+
+  if(state === 'saving') {
+    wrap.style.color = 'var(--muted)';
+    icon.className = 'ti ti-cloud-upload';
+    icon.style.color = 'var(--muted)';
+    text.textContent = 'Zapisywanie...';
+  } else if(state === 'saved') {
+    wrap.style.color = '#4ade80';
+    icon.className = 'ti ti-cloud-check';
+    icon.style.color = '#4ade80';
+    text.textContent = 'Zapisano w chmurze';
+    setTimeout(() => {
+      if(text.textContent === 'Zapisano w chmurze') {
+        wrap.style.color = 'var(--muted)';
+        icon.style.color = 'var(--muted)';
+        icon.className = 'ti ti-cloud';
+        text.textContent = 'Dane zapisane';
+      }
+    }, 3000);
+  } else if(state === 'error') {
+    wrap.style.color = 'var(--c-main)';
+    icon.className = 'ti ti-cloud-off';
+    icon.style.color = 'var(--c-main)';
+    text.textContent = 'Błąd zapisu';
+  } else if(state === 'loaded') {
+    wrap.style.color = '#60a5fa';
+    icon.className = 'ti ti-cloud-download';
+    icon.style.color = '#60a5fa';
+    text.textContent = 'Dane wczytane';
+    setTimeout(() => {
+      wrap.style.color = 'var(--muted)';
+      icon.style.color = 'var(--muted)';
+      icon.className = 'ti ti-cloud';
+      text.textContent = 'Dane zapisane';
+    }, 3000);
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data.teamsDB) teamsDB = data.teamsDB;
+    if(data.seasons) seasons = data.seasons;
+    if(data.nid) nid = data.nid;
+    return data;
+  } catch(e) {
+    return false;
+  }
+}
+
 let teamsDB = [
   {id: "rbr", name: "Red Bull Racing",  logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/87/RedBullRacingLogo1.svg/512px-RedBullRacingLogo1.svg.png", color: "#3671C6", logoW: 80, logoH: 80},
   {id: "fer", name: "Scuderia Ferrari", logo: "https://upload.wikimedia.org/wikipedia/it/thumb/e/e0/Scuderia_Ferrari_Logo.svg/512px-Scuderia_Ferrari_Logo.svg.png", color: "#E8002D", logoW: 80, logoH: 80},
@@ -463,6 +551,7 @@ function updateData(id, f, sf, v) {
   const s = seasons.find(s => s.id === id);
   if(s) { sf ? s[f][sf] = v : s[f] = v; }
   if(prevOn) rebuildPrev();
+  triggerAutoSave();
 }
 
 function uploadDriverImage(seasonId, posKey, input) {
@@ -483,8 +572,9 @@ function uploadDriverImage(seasonId, posKey, input) {
 function addSeason() {
   seasons.push({id:nid++, name:"Nowy Sezon", year:"", p1:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, p2:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, p3:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, con:{team:teamsDB[0].id,drivers:""}});
   renderApp();
+  triggerAutoSave();
 }
-function delSeason(id) { seasons = seasons.filter(s => s.id !== id); renderApp(); }
+function delSeason(id) { seasons = seasons.filter(s => s.id !== id); renderApp(); triggerAutoSave(); }
 
 function toggleTeamManager() {
   const m = document.getElementById('teamModal');
@@ -533,6 +623,7 @@ function updateTeam(id, field, value) {
   if(t) t[field] = value;
   renderTeamManager();
   renderApp();
+  triggerAutoSave();
 }
 
 function uploadTeamLogo(id, input) {
@@ -551,6 +642,7 @@ function addNewTeam() {
   teamsDB.push({id: newId, name: "Nowy Zespół", logo: "", color: "#ffffff", logoW: 80, logoH: 80});
   renderTeamManager();
   renderApp();
+  triggerAutoSave();
 }
 function deleteTeam(id) {
   if(teamsDB.length <= 1) return;
@@ -563,6 +655,7 @@ function deleteTeam(id) {
   });
   renderTeamManager();
   renderApp();
+  triggerAutoSave();
 }
 
 function togglePrev() {
@@ -726,7 +819,21 @@ async function exportPNG() {
   overlay.classList.remove('show');
 }
 
-renderApp();
+// Load saved data and initialize
+(function init() {
+  const saved = loadFromStorage();
+  renderApp();
+  if(saved) {
+    if(saved.docTitle) document.getElementById('docTitle').value = saved.docTitle;
+    if(saved.docSub) document.getElementById('docSub').value = saved.docSub;
+    showSaveStatus('loaded');
+  } else {
+    showSaveStatus('saved');
+  }
+  // Hook autosave on title/subtitle inputs
+  document.getElementById('docTitle').addEventListener('input', triggerAutoSave);
+  document.getElementById('docSub').addEventListener('input', triggerAutoSave);
+})();
 </script>
 </body>
 </html>
