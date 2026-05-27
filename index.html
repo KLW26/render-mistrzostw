@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Championship Manager Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --c-main: #E10600;
+  --c-main-glow: rgba(225, 6, 0, 0.4);
+  --bg-dark: #050505;
+  --bg-panel: #111115;
+  --bg-card: #18181f;
+  --bg-input: #0a0a0d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.15);
+  --text: #f5f5fa;
+  --muted: #848494;
+  
+  --gold: linear-gradient(135deg, #FFDF73 0%, #B8860B 100%);
+  --silver: linear-gradient(135deg, #E8E8E8 0%, #8A8A8A 100%);
+  --bronze: linear-gradient(135deg, #FFA07A 0%, #CD7F32 100%);
+  --const: linear-gradient(135deg, #5C9CE6 0%, #1E508F 100%);
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(225, 6, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+  overflow-x: hidden;
+}
+
+/* ═══ GEOMETRY & EFFECTS ═══ */
+.clip-angled { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+.clip-btn { clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.glass { background: rgba(17, 17, 21, 0.7); backdrop-filter: blur(12px); border: 1px solid var(--border); }
+
+/* ═══ HEADER ═══ */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  padding: 16px 32px;
+  background: rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; width: 100px; height: 2px;
+  background: var(--c-main); box-shadow: 0 0 10px var(--c-main-glow);
+}
+.logo-area { display: flex; align-items: center; gap: 20px; }
+.logo-icon {
+  background: var(--c-main);
+  color: #fff; width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Titillium Web', sans-serif; font-size: 24px; font-weight: 900; font-style: italic;
+  box-shadow: 0 4px 15px var(--c-main-glow);
+}
+.logo-text h1 {
+  font-family: 'Titillium Web', sans-serif; font-size: 26px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.05em; line-height: 1; margin-bottom: 2px;
+  color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+.logo-text p {
+  font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
+}
+
+/* ═══ BUTTONS & INPUTS ═══ */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px;
+  font-family: 'Titillium Web', sans-serif; font-size: 14px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none; position: relative; overflow: hidden;
+}
+.btn-primary { background: var(--c-main); color: #fff; box-shadow: 0 4px 15px rgba(225,6,0,0.3); }
+.btn-primary:hover { background: #ff1a1a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(225,6,0,0.5); }
+.btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text); }
+.btn-outline:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.3); }
+.btn-export { background: #fff; color: #000; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
+.btn-export:hover { background: #e0e0e0; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,255,255,0.4); }
+
+/* ═══ MAIN LAYOUT ═══ */
+.container { max-width: 1500px; margin: 40px auto 0; padding: 0 32px; }
+
+.controls-grid {
+  display: grid; grid-template-columns: 2fr 1fr auto; gap: 24px;
+  margin-bottom: 40px; align-items: stretch;
+}
+.control-panel {
+  padding: 24px;
+  display: flex; gap: 20px; align-items: center;
+}
+.input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.input-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+.text-input {
+  background: var(--bg-input); border: 1px solid var(--border);
+  padding: 12px 16px; border-radius: 4px; color: #fff;
+  font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 600;
+  outline: none; transition: 0.3s; width: 100%;
+}
+.text-input:focus { border-color: var(--c-main); background: #000; box-shadow: inset 4px 0 0 var(--c-main); }
+
+/* ═══ SEASONS CARDS ═══ */
+.seasons-list { display: flex; flex-direction: column; gap: 32px; margin-bottom: 40px; }
+.season-card {
+  background: var(--bg-card);
+  position: relative;
+  transition: transform 0.3s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.season-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--c-main); z-index: 10;
+}
+.season-header {
+  background: linear-gradient(90deg, rgba(225,6,0,0.1) 0%, transparent 100%);
+  padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.season-badge {
+  background: var(--c-main); padding: 4px 12px;
+  font-family: 'Titillium Web', sans-serif; font-weight: 900; font-style: italic; font-size: 16px; color: #fff;
+  letter-spacing: 0.1em;
+}
+.season-title-input {
+  background: transparent; border: none; outline: none;
+  color: #fff; font-family: 'Titillium Web', sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase;
+  width: 280px; letter-spacing: 0.05em; margin-left: 16px;
+}
+.season-year-input {
+  background: rgba(0,0,0,0.3); border: 1px solid var(--border); outline: none; padding: 6px 12px; border-radius: 4px;
+  color: var(--muted); font-size: 14px; font-weight: 700; width: 80px; text-align: center; margin-left: 16px;
+}
+.btn-icon {
+  background: rgba(255,255,255,0.05); color: var(--text); border: none; cursor: pointer;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.btn-icon:hover { background: var(--c-main); color: #fff; transform: scale(1.05); }
+
+/* ═══ POSITIONS GRID ═══ */
+.positions-grid { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--bg-panel); }
+.pos-col { padding: 24px; border-right: 1px solid var(--border); position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+.pos-col:last-child { border-right: none; }
+.pos-col::after {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; opacity: 0.8;
+}
+.col-gold::after { background: var(--gold); }
+.col-silver::after { background: var(--silver); }
+.col-bronze::after { background: var(--bronze); }
+.col-const::after { background: var(--const); }
+
+.pos-header {
+  font-family: 'Titillium Web', sans-serif; font-size: 14px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.field-group { margin-bottom: 16px; }
+.field-input {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+  padding: 12px 14px; color: #fff; font-size: 14px; font-weight: 600;
+  outline: none; transition: 0.3s;
+}
+.field-input:focus { border-color: rgba(255,255,255,0.4); background: #000; }
+select.field-input { cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill="%23848494" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>'); background-repeat: no-repeat; background-position-x: 95%; background-position-y: center; }
+
+.range-box { background: rgba(0,0,0,0.2); padding: 8px; border: 1px solid var(--border); border-radius: 4px; margin-top: 6px; }
+.range-box label { font-size: 10px; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 2px; }
+.range-box input { width: 100%; accent-color: var(--c-main); cursor: pointer; }
+
+.team-display { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+.team-logo-box {
+  width: 56px; height: 56px; background: #fff; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; padding: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.team-logo-box img { width: 100%; height: 100%; object-fit: contain; }
+
+.driver-avatar-preview {
+  width: 42px; height: 42px; background: rgba(255,255,255,0.05); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border);
+}
+.driver-avatar-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+/* ═══ TEAM MANAGER MODAL ═══ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+  z-index: 999; display: flex; justify-content: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-content {
+  width: 500px; background: var(--bg-panel); border-left: 1px solid var(--border);
+  height: 100%; padding: 40px; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.modal-overlay.active .modal-content { transform: translateX(0); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-family: 'Titillium Web', sans-serif; font-size: 24px; text-transform: uppercase; }
+
+.team-edit-card { background: var(--bg-card); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; position: relative; }
+.team-edit-card .del-team { position: absolute; top: 10px; right: 10px; color: var(--muted); cursor: pointer; }
+.team-edit-card .del-team:hover { color: var(--c-main); }
+
+/* ═══ EXPORT OVERLAY & PREVIEW ═══ */
+.preview-wrap { margin-top: 40px; display: none; animation: fadeIn 0.5s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+  z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 24px;
+}
+.overlay.show { display: flex; }
+.spinner { width: 64px; height: 64px; border: 4px solid rgba(255,255,255,0.05); border-top-color: var(--c-main); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#rt { display: none; position: fixed; top: -9999px; left: -9999px; width: 1920px; background: #050505; }
+
+/* Powiadomienie o zapisie w tle */
+#saveStatus {
+  position: fixed; bottom: 20px; left: 20px; background: rgba(0, 200, 80, 0.9); color: white;
+  padding: 10px 20px; font-weight: 600; font-size: 13px; z-index: 9999; display: none;
+  font-family: 'Titillium Web', sans-serif; letter-spacing: 0.05em; text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div id="saveStatus" class="clip-btn">Chmura zsynchronizowana <i class="ti ti-cloud-check"></i></div>
+
+<div class="header">
+  <div class="logo-area">
+    <div class="logo-icon clip-angled">F1</div>
+    <div class="logo-text">
+      <h1>League Manager</h1>
+      <p>Broadcast Overlay System</p>
+    </div>
+  </div>
+  <button class="btn btn-primary clip-btn" onclick="addSeason()">
+    <i class="ti ti-plus"></i> Dodaj Sezon
+  </button>
+</div>
+
+<div class="container">
+  <div class="controls-grid">
+    <div class="control-panel glass clip-angled">
+      <div class="input-group">
+        <span class="input-label">Tytuł dokumentu</span>
+        <input type="text" class="text-input" id="docTitle" value="OFICJALNE WYNIKI MISTRZOSTW" oninput="updateConfig('title', this.value)">
+      </div>
+      <div class="input-group">
+        <span class="input-label">Podtytuł / Liga</span>
+        <input type="text" class="text-input" id="docSub" value="SEZON JESIENNY 2026" oninput="updateConfig('sub', this.value)">
+      </div>
+    </div>
+    
+    <div class="control-panel glass clip-angled" style="justify-content: center;">
+      <button class="btn btn-outline clip-btn" style="width:100%; justify-content:center;" onclick="toggleTeamManager()">
+        <i class="ti ti-users"></i> Zarządzaj Zespołami
+      </button>
+    </div>
+    
+    <div class="control-panel glass clip-angled" style="flex-direction: column; gap:12px; justify-content: center; align-items: stretch; min-width: 260px;">
+      <button class="btn btn-outline clip-btn" style="justify-content:center;" id="prevBtn" onclick="togglePrev()">
+        <i class="ti ti-eye"></i> Podgląd
+      </button>
+      
+      <div style="display: flex; gap: 6px;">
+        <select id="exportRes" class="field-input clip-btn" style="width: 100px; padding: 10px; font-family:'Titillium Web'; font-weight:700; background-color: rgba(255,255,255,0.05); border: 1px solid var(--border-light);">
+          <option value="1">1080p</option>
+          <option value="2" selected>4K UHD</option>
+          <option value="4">8K SUHD</option>
+        </select>
+        <button class="btn btn-export clip-btn" style="justify-content:center; flex: 1;" onclick="exportPNG()">
+          <i class="ti ti-photo"></i> Zapisz
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="seasons-list" id="seasonsList"></div>
+  
+  <div class="preview-wrap" id="prevWrap">
+    <div id="prevInner" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transform-origin: top center; transform: scale(0.7); width: 142%;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teamModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Garaż Zespołów</h2>
+      <button class="btn-icon" onclick="toggleTeamManager()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="teamList"></div>
+    <button class="btn btn-outline clip-btn" style="width:100%; justify-content:center; margin-top:20px;" onclick="addNewTeam()">
+      <i class="ti ti-plus"></i> Dodaj nowy zespół
+    </button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div id="renderStatusText" style="font-family: 'Titillium Web'; font-size: 18px; letter-spacing: 0.2em; font-weight: 700;">RENDEROWANIE TELEMETRII...</div>
+</div>
+<div id="rt"></div>
+
+<script>
+// URL bazy danych Firebase Realtime Database
+const FIREBASE_URL = "https://klw-system-pro-default-rtdb.europe-west1.firebasedatabase.app/.json";
+
+// Domyślne dane początkowe w razie braku wpisów w bazie
+let teamsDB = [
+  {id: "rbr", name: "Red Bull Racing",  logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/87/RedBullRacingLogo1.svg/512px-RedBullRacingLogo1.svg.png", color: "#0c1e42", logoW: 80, logoH: 80},
+  {id: "fer", name: "Scuderia Ferrari", logo: "https://upload.wikimedia.org/wikipedia/it/thumb/e/e0/Scuderia_Ferrari_Logo.svg/512px-Scuderia_Ferrari_Logo.svg.png", color: "#ef1a2d", logoW: 80, logoH: 80},
+  {id: "mer", name: "Mercedes-AMG",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Mercedes_AMG_Petronas_F1_Logo.svg/512px-Mercedes_AMG_Petronas_F1_Logo.svg.png", color: "#00a19c", logoW: 80, logoH: 80},
+  {id: "mcl", name: "McLaren Racing",   logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/66/McLaren_Racing_logo.svg/512px-McLaren_Racing_logo.svg.png", color: "#ff8000", logoW: 80, logoH: 80},
+  {id: "ast", name: "Aston Martin",     logo: "https://upload.wikimedia.org/wikipedia/en/thumb/3/3d/Aston_Martin_Aramco_F1_logo.svg/512px-Aston_Martin_Aramco_F1_logo.svg.png", color: "#229971", logoW: 80, logoH: 80}
+];
+
+let seasons = [
+  {id:1, name:"Sezon 1", year:"2025", p1:{name:"K. Szymański",pts:"231",img:"",team:"rbr",w:80,h:50}, p2:{name:"J. Urbanek",pts:"189",img:"",team:"mer",w:80,h:50}, p3:{name:"D. Rodzik",pts:"132",img:"",team:"mcl",w:80,h:50}, con:{team:"rbr",drivers:"K. Szymański, B. Bogucki"}},
+  {id:2, name:"Sezon 2", year:"2026", p1:{name:"K. Klonowski",pts:"213",img:"",team:"fer",w:80,h:50}, p2:{name:"M. Gierek",pts:"152",img:"",team:"mer",w:80,h:50}, p3:{name:"M. Urbanek",pts:"141",img:"",team:"ast",w:80,h:50}, con:{team:"fer",drivers:"K. Klonowski, H. Dunikowski"}}
+];
+
+let config = {
+  title: "OFICJALNE WYNIKI MISTRZOSTW",
+  sub: "SEZON JESIENNY 2026"
+};
+
+let nid = 3;
+let prevOn = false;
+let saveTimeout = null;
+
+// Funkcja zapisu danych do Firebase z mechanizmem debounce (zapobiega przeciążeniu bazy przy szybkim pisaniu)
+function triggerCloudSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      const dataToSave = { teamsDB, seasons, config, nid };
+      await fetch(FIREBASE_URL, {
+        method: 'PUT',
+        body: JSON.stringify(dataToSave),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      showSaveStatus();
+    } catch (e) {
+      console.error("Błąd zapisu w chmurze:", e);
+    }
+  }, 500); // Zapis nastąpi 500ms po skończeniu edycji pola
+}
+
+function showSaveStatus() {
+  const badge = document.getElementById('saveStatus');
+  badge.style.display = 'block';
+  setTimeout(() => { badge.style.display = 'none'; }, 2000);
+}
+
+// Pobieranie danych przy uruchomieniu aplikacji
+async function loadDataFromCloud() {
+  try {
+    const response = await fetch(FIREBASE_URL);
+    const data = await response.json();
+    if (data) {
+      if (data.teamsDB) teamsDB = data.teamsDB;
+      if (data.seasons) seasons = data.seasons;
+      if (data.config) {
+        config = data.config;
+        document.getElementById('docTitle').value = config.title || "";
+        document.getElementById('docSub').value = config.sub || "";
+      }
+      if (data.nid) nid = data.nid;
+    }
+  } catch (e) {
+    console.error("Nie udało się pobrać danych, używam struktur lokalnych:", e);
+  }
+  renderApp();
+}
+
+function getTeam(id) { return teamsDB.find(t => t.id === id) || teamsDB[0]; }
+
+function renderApp() {
+  const list = document.getElementById('seasonsList');
+  list.innerHTML = '';
+  
+  seasons.forEach((s, i) => {
+    const tData = getTeam(s.con.team);
+    
+    let teamOptions = teamsDB.map(t => 
+      `<option value="${t.id}" ${t.id === tData.id ? 'selected' : ''}>${t.name}</option>`
+    ).join('');
+
+    const getDriverTeamOptions = (selectedId) => {
+      return teamsDB.map(t => `<option value="${t.id}" ${t.id === selectedId ? 'selected' : ''}>${t.name}</option>`).join('');
+    };
+
+    list.innerHTML += `
+    <div class="season-card clip-angled">
+      <div class="season-header">
+        <div style="display:flex; align-items:center;">
+          <div class="season-badge clip-angled">S${String(i+1).padStart(2, '0')}</div>
+          <input type="text" class="season-title-input" value="${s.name}" oninput="updateData(${s.id},'name',null,this.value)" placeholder="Nazwa">
+          <input type="text" class="season-year-input" value="${s.year}" oninput="updateData(${s.id},'year',null,this.value)" placeholder="Rok">
+        </div>
+        <button class="btn-icon clip-btn" onclick="delSeason(${s.id})" title="Usuń"><i class="ti ti-trash" style="font-size:20px;"></i></button>
+      </div>
+      <div class="positions-grid">
+        <div class="pos-col col-gold">
+          <div>
+            <div class="pos-header"><i class="ti ti-trophy"></i> Mistrz Świata</div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Kierowca</div><input type="text" class="field-input clip-btn" value="${s.p1.name}" oninput="updateData(${s.id},'p1','name',this.value)"></div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Punkty</div><input type="text" class="field-input clip-btn" value="${s.p1.pts}" oninput="updateData(${s.id},'p1','pts',this.value)"></div>
+            <div class="field-group">
+              <div class="input-label" style="margin-bottom:6px">Zespół (kolor)</div>
+              <select class="field-input clip-btn" onchange="updateData(${s.id},'p1','team',this.value)">
+                ${getDriverTeamOptions(s.p1.team)}
+              </select>
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0; margin-top: 10px;">
+            <div class="input-label" style="margin-bottom:6px">Grafika kierowcy / flaga</div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="driver-avatar-preview" id="p1_img_prev_${s.id}">${s.p1.img ? `<img src="${s.p1.img}">` : '<i class="ti ti-photo" style="color:var(--muted)"></i>'}</div>
+              <input type="file" accept="image/*" class="field-input clip-btn" style="padding: 6px 10px; font-size:11px; flex:1;" onchange="uploadDriverImage(${s.id}, 'p1', this)">
+            </div>
+            <div class="range-box">
+              <label>Szerokość grafiki: <span id="p1_w_val_${s.id}">${s.p1.w}</span>px</label>
+              <input type="range" min="30" max="300" value="${s.p1.w}" oninput="document.getElementById('p1_w_val_${s.id}').innerText=this.value; updateData(${s.id},'p1','w',parseInt(this.value))">
+              <label style="margin-top:6px;">Wysokość grafiki: <span id="p1_h_val_${s.id}">${s.p1.h}</span>px</label>
+              <input type="range" min="20" max="200" value="${s.p1.h}" oninput="document.getElementById('p1_h_val_${s.id}').innerText=this.value; updateData(${s.id},'p1','h',parseInt(this.value))">
+            </div>
+          </div>
+        </div>
+        
+        <div class="pos-col col-silver">
+          <div>
+            <div class="pos-header"><i class="ti ti-medal"></i> Wicemistrz</div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Kierowca</div><input type="text" class="field-input clip-btn" value="${s.p2.name}" oninput="updateData(${s.id},'p2','name',this.value)"></div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Punkty</div><input type="text" class="field-input clip-btn" value="${s.p2.pts}" oninput="updateData(${s.id},'p2','pts',this.value)"></div>
+            <div class="field-group">
+              <div class="input-label" style="margin-bottom:6px">Zespół (kolor)</div>
+              <select class="field-input clip-btn" onchange="updateData(${s.id},'p2','team',this.value)">
+                ${getDriverTeamOptions(s.p2.team)}
+              </select>
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0; margin-top: 10px;">
+            <div class="input-label" style="margin-bottom:6px">Grafika kierowcy / flaga</div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="driver-avatar-preview" id="p2_img_prev_${s.id}">${s.p2.img ? `<img src="${s.p2.img}">` : '<i class="ti ti-photo" style="color:var(--muted)"></i>'}</div>
+              <input type="file" accept="image/*" class="field-input clip-btn" style="padding: 6px 10px; font-size:11px; flex:1;" onchange="uploadDriverImage(${s.id}, 'p2', this)">
+            </div>
+            <div class="range-box">
+              <label>Szerokość grafiki: <span id="p2_w_val_${s.id}">${s.p2.w}</span>px</label>
+              <input type="range" min="30" max="300" value="${s.p2.w}" oninput="document.getElementById('p2_w_val_${s.id}').innerText=this.value; updateData(${s.id},'p2','w',parseInt(this.value))">
+              <label style="margin-top:6px;">Wysokość grafiki: <span id="p2_h_val_${s.id}">${s.p2.h}</span>px</label>
+              <input type="range" min="20" max="200" value="${s.p2.h}" oninput="document.getElementById('p2_h_val_${s.id}').innerText=this.value; updateData(${s.id},'p2','h',parseInt(this.value))">
+            </div>
+          </div>
+        </div>
+        
+        <div class="pos-col col-bronze">
+          <div>
+            <div class="pos-header"><i class="ti ti-award"></i> 3. Miejsce</div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Kierowca</div><input type="text" class="field-input clip-btn" value="${s.p3.name}" oninput="updateData(${s.id},'p3','name',this.value)"></div>
+            <div class="field-group"><div class="input-label" style="margin-bottom:6px">Punkty</div><input type="text" class="field-input clip-btn" value="${s.p3.pts}" oninput="updateData(${s.id},'p3','pts',this.value)"></div>
+            <div class="field-group">
+              <div class="input-label" style="margin-bottom:6px">Zespół (kolor)</div>
+              <select class="field-input clip-btn" onchange="updateData(${s.id},'p3','team',this.value)">
+                ${getDriverTeamOptions(s.p3.team)}
+              </select>
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0; margin-top: 10px;">
+            <div class="input-label" style="margin-bottom:6px">Grafika kierowcy / flaga</div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="driver-avatar-preview" id="p3_img_prev_${s.id}">${s.p3.img ? `<img src="${s.p3.img}">` : '<i class="ti ti-photo" style="color:var(--muted)"></i>'}</div>
+              <input type="file" accept="image/*" class="field-input clip-btn" style="padding: 6px 10px; font-size:11px; flex:1;" onchange="uploadDriverImage(${s.id}, 'p3', this)">
+            </div>
+            <div class="range-box">
+              <label>Szerokość grafiki: <span id="p3_w_val_${s.id}">${s.p3.w}</span>px</label>
+              <input type="range" min="30" max="300" value="${s.p3.w}" oninput="document.getElementById('p3_w_val_${s.id}').innerText=this.value; updateData(${s.id},'p3','w',parseInt(this.value))">
+              <label style="margin-top:6px;">Wysokość grafiki: <span id="p3_h_val_${s.id}">${s.p3.h}</span>px</label>
+              <input type="range" min="20" max="200" value="${s.p3.h}" oninput="document.getElementById('p3_h_val_${s.id}').innerText=this.value; updateData(${s.id},'p3','h',parseInt(this.value))">
+            </div>
+          </div>
+        </div>
+        
+        <div class="pos-col col-const">
+          <div>
+            <div class="pos-header"><i class="ti ti-steering-wheel"></i> Konstruktorzy</div>
+            <div class="team-display">
+              <div class="team-logo-box clip-angled"><img src="${tData.logo}" alt="Logo"></div>
+              <div style="flex:1;">
+                <select class="field-input clip-btn" onchange="updateData(${s.id},'con','team',this.value); renderApp()">
+                  ${teamOptions}
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <div class="input-label" style="margin-bottom:6px">Kierowcy w zespole</div>
+              <input type="text" class="field-input clip-btn" value="${s.con.drivers}" oninput="updateData(${s.id},'con','drivers',this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  if(prevOn) rebuildPrev();
+}
+
+function updateConfig(key, val) {
+  config[key] = val;
+  if(prevOn) rebuildPrev();
+  triggerCloudSave();
+}
+
+function updateData(id, f, sf, v) {
+  const s = seasons.find(s => s.id === id);
+  if(s) { sf ? s[f][sf] = v : s[f] = v; }
+  if(prevOn) rebuildPrev();
+  triggerCloudSave();
+}
+
+function uploadDriverImage(seasonId, posKey, input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      updateData(seasonId, posKey, 'img', e.target.result);
+      const previewBox = document.getElementById(`${posKey}_img_prev_${seasonId}`);
+      if (previewBox) {
+        previewBox.innerHTML = `<img src="${e.target.result}">`;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function addSeason() {
+  seasons.push({id:nid++, name:"Nowy Sezon", year:"", p1:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, p2:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, p3:{name:"",pts:"",img:"",team:teamsDB[0].id,w:80,h:50}, con:{team:teamsDB[0].id,drivers:""}});
+  renderApp();
+  triggerCloudSave();
+}
+function delSeason(id) { 
+  seasons = seasons.filter(s => s.id !== id); 
+  renderApp(); 
+  triggerCloudSave();
+}
+
+function toggleTeamManager() {
+  const m = document.getElementById('teamModal');
+  m.classList.toggle('active');
+  if(m.classList.contains('active')) renderTeamManager();
+}
+
+function renderTeamManager() {
+  const list = document.getElementById('teamList');
+  list.innerHTML = teamsDB.map((t, i) => `
+    <div class="team-edit-card clip-angled">
+      ${teamsDB.length > 1 ? `<i class="ti ti-trash del-team" onclick="deleteTeam('${t.id}')" title="Usuń zespół"></i>` : ''}
+      <div style="display:flex; gap:16px; align-items:center; margin-bottom:16px;">
+        <div class="team-logo-box clip-angled"><img src="${t.logo}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23eee\\'/><text x=\\'50\\' y=\\'55\\' font-size=\\'30\\' text-anchor=\\'middle\\' fill=\\'%23999\\'>?</text></svg>'"></div>
+        <div style="flex:1;">
+          <div class="input-label" style="margin-bottom:4px;">Nazwa Zespołu</div>
+          <input type="text" class="field-input clip-btn" value="${t.name}" onchange="updateTeam('${t.id}', 'name', this.value)">
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; margin-bottom:12px;">
+        <div style="flex:1;">
+          <div class="input-label" style="margin-bottom:4px;">Link do logo (URL - PNG/JPG)</div>
+          <input type="text" class="field-input clip-btn" value="${t.logo}" onchange="updateTeam('${t.id}', 'logo', this.value)">
+        </div>
+        <div style="width:100px;">
+          <div class="input-label" style="margin-bottom:4px;">Kolor teamu</div>
+          <input type="color" class="field-input clip-btn" style="padding:4px; height:43px; cursor:pointer;" value="${t.color || '#ffffff'}" onchange="updateTeam('${t.id}', 'color', this.value)">
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div class="input-label" style="margin-bottom:4px;">Wgraj plik logo z komputera</div>
+        <input type="file" accept="image/*" class="field-input clip-btn" style="padding: 8px 10px;" onchange="uploadTeamLogo('${t.id}', this)">
+      </div>
+      <div class="range-box">
+        <label>Szerokość logo (w podglądzie): <span id="t_w_val_${t.id}">${t.logoW || 80}</span>px</label>
+        <input type="range" min="40" max="250" value="${t.logoW || 80}" oninput="document.getElementById('t_w_val_${t.id}').innerText=this.value; updateTeam('${t.id}', 'logoW', parseInt(this.value))">
+        <label style="margin-top:6px;">Wysokość logo (w podglądzie): <span id="t_h_val_${t.id}">${t.logoH || 80}</span>px</label>
+        <input type="range" min="40" max="250" value="${t.logoH || 80}" oninput="document.getElementById('t_h_val_${t.id}').innerText=this.value; updateTeam('${t.id}', 'logoH', parseInt(this.value))">
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateTeam(id, field, value) {
+  const t = teamsDB.find(x => x.id === id);
+  if(t) t[field] = value;
+  renderTeamManager();
+  renderApp();
+  triggerCloudSave();
+}
+
+function uploadTeamLogo(id, input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      updateTeam(id, 'logo', e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function addNewTeam() {
+  const newId = 't_' + Math.random().toString(36).substr(2, 9);
+  teamsDB.push({id: newId, name: "Nowy Zespół", logo: "", color: "#ffffff", logoW: 80, logoH: 80});
+  renderTeamManager();
+  renderApp();
+  triggerCloudSave();
+}
+function deleteTeam(id) {
+  if(teamsDB.length <= 1) return;
+  teamsDB = teamsDB.filter(x => x.id !== id);
+  seasons.forEach(s => { 
+    if(s.con.team === id) s.con.team = teamsDB[0].id; 
+    if(s.p1.team === id) s.p1.team = teamsDB[0].id;
+    if(s.p2.team === id) s.p2.team = teamsDB[0].id;
+    if(s.p3.team === id) s.p3.team = teamsDB[0].id;
+  });
+  renderTeamManager();
+  renderApp();
+  triggerCloudSave();
+}
+
+function togglePrev() {
+  prevOn = !prevOn;
+  document.getElementById('prevWrap').style.display = prevOn ? 'block' : 'none';
+  if(prevOn) rebuildPrev();
+}
+function rebuildPrev() {
+  const t = document.getElementById('docTitle').value;
+  const sub = document.getElementById('docSub').value;
+  document.getElementById('prevInner').innerHTML = buildCanvasHTML(t, sub);
+}
+
+function buildCanvasHTML(title, sub) {
+  const bGold = 'linear-gradient(90deg, #D4AF37 0%, transparent 100%)';
+  const bSilv = 'linear-gradient(90deg, #C0C0C0 0%, transparent 100%)';
+  const bBron = 'linear-gradient(90deg, #CD7F32 0%, transparent 100%)';
+  const bCons = 'linear-gradient(90deg, #4a90e2 0%, transparent 100%)';
+
+  return `
+  <div style="width: 1920px; min-height: 1080px; background-color: #050505; background-image: radial-gradient(circle at top right, rgba(225,6,0,0.15), transparent 800px), linear-gradient(0deg, #0a0a14 0%, transparent 400px); color: #fff; font-family: 'Montserrat', sans-serif; padding: 80px 100px; position:relative; overflow:hidden;">
+    
+    <div style="position:absolute; top:0; left:0; width:100%; height:8px; background: #E10600; box-shadow: 0 0 20px #E10600;"></div>
+    <div style="position:absolute; top:-200px; left:-200px; width:600px; height:600px; border-radius:50%; background:rgba(225,6,0,0.05); filter:blur(100px); pointer-events:none;"></div>
+    <div style="position:absolute; bottom:50px; right:50px; font-family:'Titillium Web',sans-serif; font-size:160px; font-weight:900; color:rgba(255,255,255,0.02); line-height:0.8; text-align:right; pointer-events:none;">CHAMPIONSHIP<br>STANDINGS</div>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 40px; margin-bottom: 60px;">
+      <div>
+        <div style="font-family:'Titillium Web', sans-serif; font-size:64px; font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:0.02em; line-height:1; margin-bottom:14px; color: #ffffff; text-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+          ${title}
+        </div>
+        <div style="font-size:24px; font-weight:700; color:#E10600; text-transform:uppercase; letter-spacing:0.3em; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+          ${sub}
+        </div>
+      </div>
+      <div style="width: 80px; height: 80px; background: #E10600; color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Titillium Web',sans-serif; font-size:40px; font-weight:900; font-style:italic; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);">F1</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:40px; position:relative; z-index:10;">
+      ${seasons.map(s => {
+        const team = getTeam(s.con.team);
+        const t1 = getTeam(s.p1.team);
+        const t2 = getTeam(s.p2.team);
+        const t3 = getTeam(s.p3.team);
+
+        return `
+        <div style="background: rgba(17,17,21,0.8); border: 1px solid rgba(255,255,255,0.05); clip-path: polygon(30px 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0 30px); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+          
+          <div style="display:flex; background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, transparent 100%); border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div style="background: #E10600; padding: 20px 40px; font-family:'Titillium Web',sans-serif; font-size:28px; font-weight:900; font-style:italic; color:#fff; clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%); width: 200px; text-align:center;">
+              ${s.name}
+            </div>
+            <div style="padding: 24px; font-size:20px; font-weight:700; color:rgba(255,255,255,0.5); letter-spacing:0.2em;">
+              SEZON ${s.year}
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr);">
+            <div style="padding: 40px; position:relative; border-right:1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="position:absolute; top:0; left:0; width:100%; height:4px; background: ${bGold};"></div>
+              <div>
+                <div style="font-family:'Titillium Web',sans-serif; font-size:16px; font-weight:800; color:#D4AF37; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px;">Mistrz Świata</div>
+                <div style="font-size:32px; font-weight:800; color:${t1.color || '#fff'}; line-height:1.2; margin-bottom:8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${s.p1.name || '—'}</div>
+                <div style="font-size:20px; font-weight:600; color:rgba(255,255,255,0.4);">${s.p1.pts ? s.p1.pts + ' PKT' : ''}</div>
+              </div>
+              ${s.p1.img ? `<div style="margin-top: 20px; width: ${s.p1.w || 80}px; height: ${s.p1.h || 50}px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center;"><img src="${s.p1.img}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>` : ''}
+            </div>
+            
+            <div style="padding: 40px; position:relative; border-right:1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="position:absolute; top:0; left:0; width:100%; height:4px; background: ${bSilv};"></div>
+              <div>
+                <div style="font-family:'Titillium Web',sans-serif; font-size:16px; font-weight:800; color:#C0C0C0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px;">Wicemistrz</div>
+                <div style="font-size:32px; font-weight:800; color:${t2.color || '#fff'}; line-height:1.2; margin-bottom:8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${s.p2.name || '—'}</div>
+                <div style="font-size:20px; font-weight:600; color:rgba(255,255,255,0.4);">${s.p2.pts ? s.p2.pts + ' PKT' : ''}</div>
+              </div>
+              ${s.p2.img ? `<div style="margin-top: 20px; width: ${s.p2.w || 80}px; height: ${s.p2.h || 50}px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center;"><img src="${s.p2.img}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>` : ''}
+            </div>
+            
+            <div style="padding: 40px; position:relative; border-right:1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="position:absolute; top:0; left:0; width:100%; height:4px; background: ${bBron};"></div>
+              <div>
+                <div style="font-family:'Titillium Web',sans-serif; font-size:16px; font-weight:800; color:#CD7F32; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px;">3. Miejsce</div>
+                <div style="font-size:32px; font-weight:800; color:${t3.color || '#fff'}; line-height:1.2; margin-bottom:8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">${s.p3.name || '—'}</div>
+                <div style="font-size:20px; font-weight:600; color:rgba(255,255,255,0.4);">${s.p3.pts ? s.p3.pts + ' PKT' : ''}</div>
+              </div>
+              ${s.p3.img ? `<div style="margin-top: 20px; width: ${s.p3.w || 80}px; height: ${s.p3.h || 50}px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center;"><img src="${s.p3.img}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>` : ''}
+            </div>
+            
+            <div style="padding: 40px; position:relative;">
+              <div style="position:absolute; top:0; left:0; width:100%; height:4px; background: ${bCons};"></div>
+              <div style="font-family:'Titillium Web',sans-serif; font-size:16px; font-weight:800; color:#4a90e2; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px;">Mistrz Konstruktorów</div>
+              <div style="display:flex; gap:20px; align-items:center;">
+                <div style="width:${team.logoW || 80}px; height:${team.logoH || 80}px; background:#fff; border-radius:8px; padding:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <img src="${team.logo}" style="width:100%; height:100%; object-fit:contain;" crossorigin="anonymous">
+                </div>
+                <div>
+                  <div style="font-size:26px; font-weight:800; color:#fff; line-height:1.1; margin-bottom:6px;">${team.name}</div>
+                  <div style="font-size:16px; font-weight:500; color:rgba(255,255,255,0.5);">${s.con.drivers || ''}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`
+      }).join('')}
+    </div>
+
+    <div style="position:absolute; bottom:60px; left:100px; display:flex; align-items:center; gap:20px; z-index:10;">
+      <div style="width:40px; height:4px; background:#E10600;"></div>
+      <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.3em;">KLW SYSTEM Pro</div>
+    </div>
+  </div>`;
+}
+
+async function exportPNG() {
+  const overlay = document.getElementById('overlay');
+  const rt = document.getElementById('rt');
+  const statusText = document.getElementById('renderStatusText');
+  const scaleFactor = parseInt(document.getElementById('exportRes').value);
+  
+  let resLabel = "4K Ultra HD";
+  if(scaleFactor === 1) resLabel = "1080p Full HD";
+  if(scaleFactor === 4) resLabel = "8K Super Ultra HD";
+  
+  statusText.innerText = `RENDEROWANIE TELEMETRII (${resLabel})...`;
+  overlay.classList.add('show');
+  
+  await new Promise(r => setTimeout(r, 150));
+  
+  rt.innerHTML = buildCanvasHTML(document.getElementById('docTitle').value, document.getElementById('docSub').value);
+  rt.style.display = 'block';
+  
+  await new Promise(r => setTimeout(r, scaleFactor === 4 ? 1500 : 800)); 
+  
+  try {
+    const canvas = await html2canvas(rt.children[0], {
+      scale: scaleFactor, 
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#050505',
+      logging: false,
+      imageTimeout: 0 
+    });
+    
+    const link = document.createElement('a');
+    let filenameString = 'standings_1080p.png';
+    if(scaleFactor === 2) filenameString = 'standings_4k.png';
+    if(scaleFactor === 4) filenameString = 'standings_8k.png';
+    
+    link.download = filenameString;
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.click();
+  } catch (e) {
+    console.error("Błąd eksportu:", e);
+    alert("Wystąpił błąd podczas generowania pliku. Przy rozdzielczości 8K upewnij się, że przeglądarka ma przydzielone wystarczająco pamięci RAM.");
+  }
+  
+  rt.style.display = 'none';
+  rt.innerHTML = '';
+  overlay.classList.remove('show');
+}
+
+// Inicjalizacja aplikacji - ładujemy dane z Firebase chmury
+loadDataFromCloud();
+</script>
+</body>
+</html>
