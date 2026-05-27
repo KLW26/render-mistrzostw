@@ -244,6 +244,9 @@ select.field-input { cursor: pointer; appearance: none; background-image: url('d
       <i class="ti ti-cloud" id="saveIcon" style="font-size:18px;"></i>
       <span id="saveText">Ładowanie...</span>
     </div>
+    <button class="btn btn-outline clip-btn" onclick="saveManually()" style="border-color: #4ade80; color: #4ade80;">
+      <i class="ti ti-device-floppy"></i> Zapisz zmiany
+    </button>
     <button class="btn btn-primary clip-btn" onclick="addSeason()">
       <i class="ti ti-plus"></i> Dodaj Sezon
     </button>
@@ -314,10 +317,10 @@ select.field-input { cursor: pointer; appearance: none; background-image: url('d
 <div id="rt"></div>
 
 <script>
-const SAVE_KEY = 'championship_manager_data';
+const FIREBASE_URL = 'https://klw-system-pro-default-rtdb.europe-west1.firebasedatabase.app/championship.json';
 let saveTimeout = null;
 
-function saveToStorage() {
+async function saveToStorage() {
   const data = {
     teamsDB,
     seasons,
@@ -326,17 +329,28 @@ function saveToStorage() {
     docSub: document.getElementById('docSub')?.value || 'SEZON JESIENNY 2026'
   };
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    const res = await fetch(FIREBASE_URL, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
     showSaveStatus('saved');
   } catch(e) {
+    console.error('Firebase save error:', e);
     showSaveStatus('error');
   }
+}
+
+async function saveManually() {
+  showSaveStatus('saving');
+  await saveToStorage();
 }
 
 function triggerAutoSave() {
   showSaveStatus('saving');
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveToStorage, 800);
+  saveTimeout = setTimeout(saveToStorage, 1200);
 }
 
 function showSaveStatus(state) {
@@ -382,16 +396,37 @@ function showSaveStatus(state) {
   }
 }
 
-function loadFromStorage() {
+async function loadFromStorage() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(data.teamsDB) teamsDB = data.teamsDB;
+    const res = await fetch(FIREBASE_URL);
+    if(!res.ok) return false;
+    const data = await res.json();
+    if(!data) return false;
+    if(data.teamsDB) {
+      teamsDB = data.teamsDB;
+      // Dołącz domyślne zespoły których brakuje w zapisanych danych
+      const defaultTeams = [
+        {id: "rbr", name: "Red Bull Racing",  logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/87/RedBullRacingLogo1.svg/512px-RedBullRacingLogo1.svg.png", color: "#3671C6", logoW: 80, logoH: 80},
+        {id: "fer", name: "Scuderia Ferrari", logo: "https://upload.wikimedia.org/wikipedia/it/thumb/e/e0/Scuderia_Ferrari_Logo.svg/512px-Scuderia_Ferrari_Logo.svg.png", color: "#E8002D", logoW: 80, logoH: 80},
+        {id: "mer", name: "Mercedes-AMG",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Mercedes_AMG_Petronas_F1_Logo.svg/512px-Mercedes_AMG_Petronas_F1_Logo.svg.png", color: "#27F4D2", logoW: 80, logoH: 80},
+        {id: "mcl", name: "McLaren Racing",   logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/66/McLaren_Racing_logo.svg/512px-McLaren_Racing_logo.svg.png", color: "#FF8000", logoW: 80, logoH: 80},
+        {id: "ast", name: "Aston Martin",     logo: "https://upload.wikimedia.org/wikipedia/en/thumb/3/3d/Aston_Martin_Aramco_F1_logo.svg/512px-Aston_Martin_Aramco_F1_logo.svg.png", color: "#229971", logoW: 80, logoH: 80},
+        {id: "alp", name: "Alpine F1 Team",   logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Alpine_F1_Team_2021_Logo.svg/512px-Alpine_F1_Team_2021_Logo.svg.png", color: "#0093CC", logoW: 80, logoH: 80},
+        {id: "haa", name: "Haas F1 Team",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Haas_F1_Team_logo_2023.svg/512px-Haas_F1_Team_logo_2023.svg.png", color: "#B6BABD", logoW: 80, logoH: 80},
+        {id: "rbu", name: "Racing Bulls",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/RB_F1_Team_logo.svg/512px-RB_F1_Team_logo.svg.png", color: "#6692FF", logoW: 80, logoH: 80},
+        {id: "wil", name: "Williams Racing",  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Williams_Racing_2020_logo.svg/512px-Williams_Racing_2020_logo.svg.png", color: "#37BEDD", logoW: 80, logoH: 80},
+        {id: "aud", name: "Audi F1 Team",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Audi-Logo_2016.svg/512px-Audi-Logo_2016.svg.png", color: "#BB0A30", logoW: 80, logoH: 80},
+        {id: "cad", name: "Cadillac F1 Team", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Cadillac_logo.svg/512px-Cadillac_logo.svg.png", color: "#1C3F6E", logoW: 80, logoH: 80}
+      ];
+      defaultTeams.forEach(dt => {
+        if(!teamsDB.find(t => t.id === dt.id)) teamsDB.push(dt);
+      });
+    }
     if(data.seasons) seasons = data.seasons;
     if(data.nid) nid = data.nid;
     return data;
   } catch(e) {
+    console.error('Firebase load error:', e);
     return false;
   }
 }
@@ -403,10 +438,11 @@ let teamsDB = [
   {id: "mcl", name: "McLaren Racing",   logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/66/McLaren_Racing_logo.svg/512px-McLaren_Racing_logo.svg.png", color: "#FF8000", logoW: 80, logoH: 80},
   {id: "ast", name: "Aston Martin",     logo: "https://upload.wikimedia.org/wikipedia/en/thumb/3/3d/Aston_Martin_Aramco_F1_logo.svg/512px-Aston_Martin_Aramco_F1_logo.svg.png", color: "#229971", logoW: 80, logoH: 80},
   {id: "alp", name: "Alpine F1 Team",   logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Alpine_F1_Team_2021_Logo.svg/512px-Alpine_F1_Team_2021_Logo.svg.png", color: "#0093CC", logoW: 80, logoH: 80},
-  {id: "haa", name: "MoneyGram Haas",   logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Haas_F1_Team_logo_2023.svg/512px-Haas_F1_Team_logo_2023.svg.png", color: "#B6BABD", logoW: 80, logoH: 80},
-  {id: "vis", name: "Visa Cash App RB", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/RB_F1_Team_logo.svg/512px-RB_F1_Team_logo.svg.png", color: "#6692FF", logoW: 80, logoH: 80},
+  {id: "haa", name: "Haas F1 Team",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Haas_F1_Team_logo_2023.svg/512px-Haas_F1_Team_logo_2023.svg.png", color: "#B6BABD", logoW: 80, logoH: 80},
+  {id: "rbu", name: "Racing Bulls",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/RB_F1_Team_logo.svg/512px-RB_F1_Team_logo.svg.png", color: "#6692FF", logoW: 80, logoH: 80},
   {id: "wil", name: "Williams Racing",  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Williams_Racing_2020_logo.svg/512px-Williams_Racing_2020_logo.svg.png", color: "#37BEDD", logoW: 80, logoH: 80},
-  {id: "sau", name: "Stake F1 / Sauber",logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Stake_F1_Team_Kick_Sauber_2024_logo.svg/512px-Stake_F1_Team_Kick_Sauber_2024_logo.svg.png", color: "#52E252", logoW: 80, logoH: 80}
+  {id: "aud", name: "Audi F1 Team",     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Audi-Logo_2016.svg/512px-Audi-Logo_2016.svg.png", color: "#BB0A30", logoW: 80, logoH: 80},
+  {id: "cad", name: "Cadillac F1 Team",  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Cadillac_logo.svg/512px-Cadillac_logo.svg.png", color: "#1C3F6E", logoW: 80, logoH: 80}
 ];
 
 let seasons = [
@@ -820,8 +856,10 @@ async function exportPNG() {
 }
 
 // Load saved data and initialize
-(function init() {
-  const saved = loadFromStorage();
+(async function init() {
+  showSaveStatus('saving'); // show "loading" state
+  document.getElementById('saveText').textContent = 'Wczytywanie...';
+  const saved = await loadFromStorage();
   renderApp();
   if(saved) {
     if(saved.docTitle) document.getElementById('docTitle').value = saved.docTitle;
@@ -830,7 +868,6 @@ async function exportPNG() {
   } else {
     showSaveStatus('saved');
   }
-  // Hook autosave on title/subtitle inputs
   document.getElementById('docTitle').addEventListener('input', triggerAutoSave);
   document.getElementById('docSub').addEventListener('input', triggerAutoSave);
 })();
