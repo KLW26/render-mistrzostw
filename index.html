@@ -286,6 +286,9 @@ select.field-input { cursor: pointer; appearance: none; background-image: url('d
         <button class="btn btn-export clip-btn" style="justify-content:center; flex: 1;" onclick="exportPNG()">
           <i class="ti ti-photo"></i> Zapisz
         </button>
+        <button class="btn clip-btn" style="justify-content:center; background:#5865F2; color:#fff; box-shadow: 0 4px 15px rgba(88,101,242,0.4);" onclick="sendToDiscord()" title="Wyślij na Discord">
+          <i class="ti ti-brand-discord"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -803,6 +806,74 @@ function buildCanvasHTML(title, sub) {
       <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.3em;">KLW SYSTEM Pro</div>
     </div>
   </div>`;
+}
+
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1509221651013963847/l2HGo3yQkPcsFY4l0bk9IAgXMJnT99UK4z9VaH-Q96gFGOYLhdzqbM_NhvEYrrfdv66v';
+
+async function sendToDiscord() {
+  const overlay = document.getElementById('overlay');
+  const rt = document.getElementById('rt');
+  const statusText = document.getElementById('renderStatusText');
+  const scaleFactor = parseInt(document.getElementById('exportRes').value);
+
+  let resLabel = "4K Ultra HD";
+  if(scaleFactor === 1) resLabel = "1080p Full HD";
+  if(scaleFactor === 4) resLabel = "8K Super Ultra HD";
+
+  statusText.innerText = `RENDEROWANIE I WYSYŁANIE NA DISCORD (${resLabel})...`;
+  overlay.classList.add('show');
+
+  await new Promise(r => setTimeout(r, 150));
+
+  rt.innerHTML = buildCanvasHTML(document.getElementById('docTitle').value, document.getElementById('docSub').value);
+  rt.style.display = 'block';
+
+  await new Promise(r => setTimeout(r, scaleFactor === 4 ? 1500 : 800));
+
+  try {
+    const canvas = await html2canvas(rt.children[0], {
+      scale: scaleFactor,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#050505',
+      logging: false,
+      imageTimeout: 0
+    });
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+
+    let filename = 'standings_1080p.png';
+    if(scaleFactor === 2) filename = 'standings_4k.png';
+    if(scaleFactor === 4) filename = 'standings_8k.png';
+
+    const title = document.getElementById('docTitle').value || 'WYNIKI MISTRZOSTW';
+    const sub = document.getElementById('docSub').value || '';
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    formData.append('payload_json', JSON.stringify({
+      username: 'Championship Manager Pro',
+      content: `📊 **${title}**${sub ? `\n> ${sub}` : ''}\n\`${resLabel}\``
+    }));
+
+    const res = await fetch(DISCORD_WEBHOOK, { method: 'POST', body: formData });
+
+    if(res.ok) {
+      statusText.innerText = '✅ WYSŁANO NA DISCORD!';
+      await new Promise(r => setTimeout(r, 1500));
+    } else {
+      const err = await res.text();
+      console.error('Discord error:', err);
+      alert(`Błąd Discord (${res.status}): ${err}`);
+    }
+  } catch(e) {
+    console.error('Błąd wysyłania:', e);
+    alert('Wystąpił błąd podczas wysyłania na Discord: ' + e.message);
+  }
+
+  rt.style.display = 'none';
+  rt.innerHTML = '';
+  overlay.classList.remove('show');
 }
 
 async function exportPNG() {
